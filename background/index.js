@@ -4,15 +4,22 @@ function hideDetail(e){
   return e;
 }
 
+function hideUser(e){
+  e.user = "?".repeat(e.user.length)
+  return e;
+}
+
 function cvt(mode, e){
-  if(mode == "明人")
+  if(mode == "完人")
     return e.self ? e : null;
-  else if(mode == "暗人")
+  else if(mode == "啞人")
     return e.self ? hideDetail(e) : null;
-  else if(mode == "明房")
+  else if(mode == "完房")
     return e;
-  else if(mode == "暗房")
+  else if(mode == "啞房")
     return hideDetail(e)
+  else if(mode == "暗房")
+    return hideUser(e)
   return e.self ? e : null;
 }
 

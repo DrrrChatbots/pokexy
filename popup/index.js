@@ -119,7 +119,7 @@ $(document).ready(function(){
     chrome.tabs.create({url: 'https://discord.com/invite/BBCw3UY'});
   });
   $("#goto-repo").click(function(){
-    chrome.tabs.create({url: 'https://github.com/DrrrChatbots'});
+    chrome.tabs.create({url: 'https://github.com/DrrrChatbots/pokexy'});
   });
 
   chrome.storage.sync.get((config)=>{
