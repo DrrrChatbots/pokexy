@@ -28,16 +28,20 @@
         {
             "matches": ["https://discord.com/*", "https://discordapp.com/*"],
             "run_at": "document_start",
-            "js": [ "/lib/discord-self-bot-console.js"
+            "js": [ "/js/jquery-3.4.1.min.js"
+                  , "/lib/discord-self-bot-console.js"
                   , "/content/channel.js"]
         }
     ],
     "permissions": [
         "tabs",
         "storage",
+        "contextMenus",
+        "notifications",
         "*://drrr.com/*",
         "*://discord.com/*",
-        "*://discordapp.com/*"
+        "*://discordapp.com/*",
+        "*://localhost/*"
     ],
     "optional_permissions": [ "http://*/*", "https://*/*" ]
 }
