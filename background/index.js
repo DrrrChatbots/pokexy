@@ -193,8 +193,9 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
 
       },
       error: function(jxhr){
-        alert("fetch failed");
-        // notification
+        return makeNotification(
+                `Server Error`,
+                `please check the server status`);
       }
     });
   }
