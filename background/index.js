@@ -52,6 +52,13 @@ function log2mkd(type, e){
   return '';
 }
 
+let commandInfo = {
+  "p!c copy": [`Catch By Coping`, `Wait Server Responding`, 'wait server'],
+  "p!c channel": [`Catch Here`, `Wait Server Responding`, 'wait server'],
+  "p!c fixchannel": [`Catch and Send to Fix Channel`, `Wait Server Responding`, 'wait server'],
+}
+
+
 chrome.runtime.onMessage.addListener((req, sender, callback) => {
   //if(["msg", "me"].includes(req.type)){
   chrome.storage.sync.get(async (config)=>{
@@ -78,24 +85,38 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
       }
     }
     else if(req['catch']){
-      var url = `http://localhost:8000/wpm?url=${encodeURIComponent(req.catch)}`;
-      $.ajax({
-        type: "GET",
-        url: url,
-        dataType: 'json',
-        success: function(data){
-          chrome.storage.sync.get(async (config)=>{
-            let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
-            if(sender.url.match(regexp)) return await pc_channel(config, sender.url, data);
-          });
-        },
-        error: function(jxhr){
-          return makeNotification(
-                `Server Error`,
-                `please check the server status`);
-        }
-      });
+
+      let index = Number(req.ctrl) * 1 + Number(req.shift) * 2;
+      if(index){
+        makeNotification.apply(null,
+          commandInfo[["invalid", "p!c channel", "p!c copy", "p!c fixchannel"][index]])
+
+        var url = `http://localhost:8000/wpm?url=${encodeURIComponent(req.catch)}`;
+        $.ajax({
+          type: "GET",
+          url: url,
+          dataType: 'json',
+          success: function(data){
+            if(req.ctrl){
+              chrome.storage.sync.get(async (config)=>{
+                let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
+                if(req.url.match(regexp)) return await pc_channel(config, req.shift ? undefined: req.url, data);
+              });
+            }
+            else if(req.shift){
+              pc_copy(data);
+            }
+          },
+          error: function(jxhr){
+            chrome.notifications.clear('wait server');
+            return makeNotification(
+              `Server Error`,
+              `please check the server status`);
+          }
+        });
+      }
     }
+
   })
 });
 
@@ -120,9 +141,9 @@ chrome.runtime.onInstalled.addListener(() => {
   //});
 });
 
-let makeNotification = (title, message) =>
+let makeNotification = (title, message, id) =>
   chrome.notifications.create(
-    undefined, {
+    id, {
       type: "basic",
       iconUrl: '/icon.png',
       title: title,
@@ -131,72 +152,88 @@ let makeNotification = (title, message) =>
   );
 
 async function pc_channel(config, url, data){
+
+  chrome.notifications.clear('wait server');
   if(!config['Authorization'])
     return makeNotification(
       `Need Authorization`,
       `You need to set Authorization Token`);
 
-  let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
-  let m = url.match(regexp);
-  window.gid = m[1]
-  window.cid = m[2]
+  let context = "";
+  if(url){
+    let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)')
+    let m = url.match(regexp)
+    window.gid = m[1]
+    window.cid = m[2]
+    context = `Catch!`
+  }
+  else{
+    let pass = ['guildId', 'channelId']
+      .map(field => config[field])
+      .every(value => typeof(value) == 'string' && value.length);
+    if(!pass) return makeNotification(
+      `Need Authorization, guildId and channelId`,
+      `Please complete your setup`
+    )
+    window.gid = config['guildId']
+    window.cid = config['channelId']
+    context = `Send to your chaneel`
+  }
   window.authHeader = config['Authorization']
   let channelId = cid
   let sentMessage = await api.sendMessage(channelId, `p!c ${data.pm[0]}`)
-  return makeNotification(`Guess Pokemon "${data.pm[0]}"!`, `Catch!`);
+  return makeNotification(`Guess Pokemon "${data.pm[0]}"!`, context);
+}
+
+function pc_copy(data){
+  chrome.notifications.getAll(notes => {
+    for(let note in notes){
+      chrome.notifications.clear(note.id);
+    }
+  })
+
+  copyToClipboard(`p!c ${data.pm[0]}`);
+  return makeNotification(
+    `Guess Pokemon "${data.pm[0]}"!`,
+    `Copied to your Clipboard!`);
 }
 
 chrome.contextMenus.onClicked.addListener(function(info,tab) {
-  console.log(
-    "ID是：" + info.menuItemId + "\n" +
-    "現在的網址是：" + info.pageUrl + "\n" +
-    "選取的文字是：" + (info.selectionText ? info.selectionText : "") + "\n" +
-    "現在hover元素的圖片來源：" + (info.srcUrl ? info.srcUrl : "") + "\n" +
-    "現在hover的連結：" + (info.linkUrl ? info.linkUrl : "") + "\n" +
-    "現在hover的frame是：" + (info.frameUrl ? info.frameUrl : "") + "\n"
-  )
-  let link = (info.linkUrl ? info.linkUrl : "");
-  if(link.length){
-    var url = `http://localhost:8000/wpm?url=${encodeURIComponent(link)}`;
-    $.ajax({
-      type: "GET",
-      url: url,
-      dataType: 'json',
-      success: function(data){
-        chrome.storage.sync.get(async (config)=>{
-          if(info.menuItemId == "p!c copy"){
-            copyToClipboard(`p!c ${data.pm[0]}`);
-            return makeNotification(
-              `Guess Pokemon "${data.pm[0]}"!`,
-              `Copied to your Clipboard!`);
-          }
-          else if(info.menuItemId == "p!c channel"){
-            return await pc_channel(config, info.pageUrl, data);
-          }
-          else if(info.menuItemId == "p!c fixchannel"){
-            // TODO
-            let pass = ['Authorization', 'guildId', 'channelId']
-              .map(field => config[field])
-              .every(value => typeof(value) == 'string' && value.length);
-            if(!pass) return makeNotification(
-              `Need Authorization, guildId and channelId`,
-              `Please complete your setup`
-            )
-            window.gid = config['guildId']
-            window.cid = config['channelId']
-            window.authHeader = config['Authorization']
-            let channelId = cid
-            let sentMessage = await api.sendMessage(channelId, `p!c ${data.pm[0]}`)
-            return makeNotification(`Guess Pokemon "${data.pm[0]}"!`, `Send to your chaneel`);
-          }
-        });
+  //console.log(
+  //  "ID是：" + info.menuItemId + "\n" +
+  //  "現在的網址是：" + info.pageUrl + "\n" +
+  //  "選取的文字是：" + (info.selectionText ? info.selectionText : "") + "\n" +
+  //  "現在hover元素的圖片來源：" + (info.srcUrl ? info.srcUrl : "") + "\n" +
+  //  "現在hover的連結：" + (info.linkUrl ? info.linkUrl : "") + "\n" +
+  //  "現在hover的frame是：" + (info.frameUrl ? info.frameUrl : "") + "\n"
+  //)
 
-      },
-      error: function(jxhr){
-        return makeNotification(
-                `Server Error`,
-                `please check the server status`);
-      }
-    });
+  if(commandInfo[info.menuItemId]){
+    makeNotification.apply(null, commandInfo[info.menuItemId])
+    let link = (info.linkUrl ? info.linkUrl : "");
+    if(link.length){
+      var url = `http://localhost:8000/wpm?url=${encodeURIComponent(link)}`;
+      $.ajax({
+        type: "GET",
+        url: url,
+        dataType: 'json',
+        success: function(data){
+          chrome.storage.sync.get(async (config)=>{
+            if(info.menuItemId == "p!c copy")
+              return pc_copy(data);
+            else if(info.menuItemId == "p!c channel")
+              return await pc_channel(config, info.pageUrl, data);
+            else if(info.menuItemId == "p!c fixchannel")
+              return await pc_channel(config, undefined, data);
+          });
+        },
+        error: function(jxhr){
+          chrome.notifications.clear('wait server');
+          return makeNotification(
+            `Server Error`,
+            `please check the server status`);
+        }
+      });
+    }
   }
 });

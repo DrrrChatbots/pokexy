@@ -92,7 +92,8 @@ $(document).ready(function(){
       obj = MsgDOM2EventObj(e)
       obj.self = obj.user == name;
       console.log(obj)
-      chrome.runtime.sendMessage(obj);
+      if(chrome.runtime)
+        chrome.runtime.sendMessage(obj);
     }
   });
 });

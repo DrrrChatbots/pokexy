@@ -11,23 +11,14 @@ document.addEventListener("DOMContentLoaded", function() {
   console.log($)
 });
 
-var cntrlIsPressed = false;
-
-$(document).keydown(function(event){
-  if(event.which=="17"){
-    cntrlIsPressed = true;
-  }
-});
-
-$(document).keyup(function(){
-  cntrlIsPressed = false;
-});
-
 $(document).on('click', 'img', function(event){
-  if(cntrlIsPressed){
+  if(event.shiftKey || event.ctrlKey){
     if($(this).attr('src')){
       chrome.runtime.sendMessage({
-        'catch': $(this).attr('src').split('?')[0]
+        'catch': $(this).attr('src').split('?')[0],
+        'ctrl': event.ctrlKey,
+        'shift': event.shiftKey,
+        'url': window.location.href,
       });
     }
   }
