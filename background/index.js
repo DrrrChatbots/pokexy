@@ -55,7 +55,8 @@ function log2mkd(type, e){
 let commandInfo = {
   "p!c copy": [`Catch By Coping`, `Wait Server Responding`, 'wait server'],
   "p!c channel": [`Catch Here`, `Wait Server Responding`, 'wait server'],
-  "p!c fixchannel": [`Catch and Send to Fix Channel`, `Wait Server Responding`, 'wait server'],
+  "p!c query": [`Query on Popup`, `Wait Server Responding`, 'wait server'],
+  //"p!c fixchannel": [`Catch and Send to Fix Channel`, `Wait Server Responding`, 'wait server'],
 }
 
 
@@ -85,11 +86,12 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
       }
     }
     else if(req['catch']){
+      //return chrome.tabs.create({url:"popup/index.html"});;
 
       let index = Number(req.ctrl) * 1 + Number(req.shift) * 2;
       if(index){
         makeNotification.apply(null,
-          commandInfo[["invalid", "p!c channel", "p!c copy", "p!c fixchannel"][index]])
+          commandInfo[["invalid", "p!c channel", "p!c copy", "p!c query"][index]])
 
         var url = `http://localhost:8000/wpm?url=${encodeURIComponent(req.catch)}`;
         $.ajax({
@@ -97,14 +99,20 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
           url: url,
           dataType: 'json',
           success: function(data){
+            chrome.notifications.clear('wait server');
+            data.url = req.url;
+            chrome.storage.sync.set({lastQuery: data});
             if(req.ctrl){
-              chrome.storage.sync.get(async (config)=>{
-                let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
-                if(req.url.match(regexp)) return await pc_channel(config, req.shift ? undefined: req.url, data);
-              });
+              if(req.shift) pc_copy(data);
+              else{
+                chrome.storage.sync.get(async (config)=>{
+                  let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
+                  if(req.url.match(regexp)) return await pc_channel(config, req.shift ? undefined: req.url, data);
+                });
+              }
             }
             else if(req.shift){
-              pc_copy(data);
+              makeNotification(`Query Done!`, `Guess Pokemon "${data.pm[0]}"!`);
             }
           },
           error: function(jxhr){
@@ -141,63 +149,6 @@ chrome.runtime.onInstalled.addListener(() => {
   //});
 });
 
-let makeNotification = (title, message, id) =>
-  chrome.notifications.create(
-    id, {
-      type: "basic",
-      iconUrl: '/icon.png',
-      title: title,
-      message: message,
-    }
-  );
-
-async function pc_channel(config, url, data){
-
-  chrome.notifications.clear('wait server');
-  if(!config['Authorization'])
-    return makeNotification(
-      `Need Authorization`,
-      `You need to set Authorization Token`);
-
-  let context = "";
-  if(url){
-    let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)')
-    let m = url.match(regexp)
-    window.gid = m[1]
-    window.cid = m[2]
-    context = `Catch!`
-  }
-  else{
-    let pass = ['guildId', 'channelId']
-      .map(field => config[field])
-      .every(value => typeof(value) == 'string' && value.length);
-    if(!pass) return makeNotification(
-      `Need Authorization, guildId and channelId`,
-      `Please complete your setup`
-    )
-    window.gid = config['guildId']
-    window.cid = config['channelId']
-    context = `Send to your chaneel`
-  }
-  window.authHeader = config['Authorization']
-  let channelId = cid
-  let sentMessage = await api.sendMessage(channelId, `p!c ${data.pm[0]}`)
-  return makeNotification(`Guess Pokemon "${data.pm[0]}"!`, context);
-}
-
-function pc_copy(data){
-  chrome.notifications.getAll(notes => {
-    for(let note in notes){
-      chrome.notifications.clear(note.id);
-    }
-  })
-
-  copyToClipboard(`p!c ${data.pm[0]}`);
-  return makeNotification(
-    `Guess Pokemon "${data.pm[0]}"!`,
-    `Copied to your Clipboard!`);
-}
-
 chrome.contextMenus.onClicked.addListener(function(info,tab) {
   //console.log(
   //  "ID是：" + info.menuItemId + "\n" +
@@ -218,13 +169,18 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
         url: url,
         dataType: 'json',
         success: function(data){
+          chrome.notifications.clear('wait server');
           chrome.storage.sync.get(async (config)=>{
+            data.url = info.pageUrl;
+            chrome.storage.sync.set({lastQuery: data});
             if(info.menuItemId == "p!c copy")
               return pc_copy(data);
             else if(info.menuItemId == "p!c channel")
               return await pc_channel(config, info.pageUrl, data);
-            else if(info.menuItemId == "p!c fixchannel")
-              return await pc_channel(config, undefined, data);
+            else if(info.menuItemId == "p!c query")
+              return makeNotification(`Query Done!`, `Guess Pokemon "${data.pm[0]}"!`);
+            //else if(info.menuItemId == "p!c fixchannel")
+            //  return await pc_channel(config, undefined, data);
           });
         },
         error: function(jxhr){

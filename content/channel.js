@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 $(document).on('click', 'img', function(event){
   if(event.shiftKey || event.ctrlKey){
+    console.log(event)
     if($(this).attr('src')){
       chrome.runtime.sendMessage({
         'catch': $(this).attr('src').split('?')[0],

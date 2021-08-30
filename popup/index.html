@@ -8,6 +8,7 @@
     <link href="/css/font-awesome.min.css" rel="stylesheet">
     <link href="/popup/index.css" rel="stylesheet">
     <link href="/popup/theme.css" rel="stylesheet">
+    <script src="/lib/discord-self-bot-console.js" type="text/javascript" charset="utf-8"></script>
     <script src="/lib/globals.js" type="text/javascript" charset="utf-8"></script>
     <script src="/js/jquery-3.4.1.min.js"></script>
     <script src="/js/bootstrap-switch.min.js"></script>
@@ -63,14 +64,14 @@
         <hr>
 
         <ul class="nav nav-tabs nav-justified">
-          <li id="tab1" class="pop-tab active"><a data-toggle="tab" href="#tab1-cont">Bio</a></li>
+          <li id="tab1" class="pop-tab active"><a data-toggle="tab" href="#tab1-cont">Setup</a></li>
           <!--
           <li id="tab2" class="pop-tab"><a data-toggle="tab" href="#tab2-cont">Friends</a></li>
           <li id="tab0" class="pop-tab"><a data-toggle="tab" href="#tab0-cont">Music</a></li>
           <li id="tab3" class="pop-tab"><a data-toggle="tab" href="#tab3-cont">Mod</a></li>
           <li id="tab5" class="pop-tab"><a data-toggle="tab" href="#tab5-cont">Plug</a></li>
-          <li id="tab4" class="pop-tab"><a data-toggle="tab" href="#tab4-cont">Sticker</a></li>
           -->
+          <li id="tab4" class="pop-tab"><a data-toggle="tab" href="#tab4-cont">Query</a></li>
         </ul>
 
         <div class="tab-content">
@@ -477,6 +478,7 @@
 
           <div id="tab4-cont" class="tab-pane fade">
             <br>
+            <!--
             <div class="input-group">
               <div class="input-group-btn">
                 <button id="reset-sticker" class="btn btn-default" type="button" title='reset stickers'>
@@ -505,12 +507,13 @@
                 </button>
               </div>
             </div>
-            <div id="sticker_list" class="collapse">
+            -->
+            <div id="query_list" class="collapse">
               <div class="row" style="height:100%">
                 <div class="col-md-4">
                   <div class="list-group" style="margin-bottom: 0px;">
                     <hr>
-                    <div id='sticker_list_container'></div>
+                    <div id='query_list_container'></div>
                   </div>
                 </div>
               </div>
