@@ -182,7 +182,6 @@ function bind_query(args){
 
 function query_setup(config){
   let $target = $('#query_list');
-
   if(!config.lastQuery || !config.lastQuery.img)
     return $('#query_list_container')
       .html(empty_template('NO LAST QUERY', 'glyphicon-info-sign'))
@@ -201,6 +200,128 @@ function query_setup(config){
   );
 }
 
+function init_plugin(config){
+  if(config['catch_channels']){
+    $('#plugin-select').empty();
+
+    let cc = Object.keys(config['catch_channels']);
+
+    cc.forEach((name)=>{
+      $('#plugin-select').append(
+        `<option style="text-align:center; text-align-last:center;"
+          title="${name}"
+          value="${name}">${name}</option>`);
+    })
+
+    let select_cc = config['select_cc'];
+
+    if(select_cc){
+      let enable = config['catch_channels'][select_cc];
+      $('#plugin-select').val(select_cc);
+      let plugin_switch = enable;
+      $('#plugin-switch').attr('class', `fa fa-toggle-${enable ? 'on' : 'off'}`);
+    }
+  }
+}
+
+
+function catch_setup(config){
+
+  init_plugin(config);
+
+  $('#plugin-switch-btn').click(function(){
+    let sel = $('#plugin-select')[0];
+    let optionSelected = $("option:selected", sel);
+    let valueSelected = sel.value;
+    if(!valueSelected.trim().length)
+      return alert("no selected catch channel")
+    let v = !$('#plugin-switch').hasClass(`fa-toggle-on`);
+    if(!valueSelected) return;
+    chrome.storage.sync.get("catch_channels", (config)=>{
+      config["catch_channels"][valueSelected] = v;
+      chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
+    });
+    $('#plugin-switch').attr('class', `fa fa-toggle-${v ? 'on' : 'off'}`);
+  });
+
+
+  $('#auto_catch').on('click', function(){
+    chrome.runtime.sendMessage({ 'autocatch': true });
+  })
+
+  //$('#write_plugin').on('click', function(){
+
+  //});
+
+  //$('#save-plugin').on('click', function(){
+
+  //});
+
+  $('#add_plugin').on('click', function(){
+
+    let url = prompt('input the channel URL\n(https://discord.com/channels/.../...)');
+    if(url === null) return;
+    let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
+    let m = url.match(regexp);
+    if(m){
+      let name = `${m[1]}/${m[2]}`;
+      chrome.storage.sync.get("catch_channels", (config)=>{
+        config["catch_channels"] = config["catch_channels"] || {}
+        config["catch_channels"][name] = false;
+        chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
+      });
+      let $stored = $('#plugin-select');
+      let idx = $('option', $stored).length;
+      $stored.append(`<option style="text-align:center; text-align-last:center;"
+      value="${name}" title="${name}">${name}</option>`);
+      $stored[0].selectedIndex = idx;
+      $stored.change();
+    }
+    else alert("invalid channel URL");
+  });
+
+  $('#del_plugin').on('click', function(){
+    let $stored = $('#plugin-select');
+    let optionSelected = $("option:selected", $stored);
+    let valueSelected = $stored.val();
+    if(!valueSelected) return alert("no plugin selected");
+    if(valueSelected === 'chatroom_hooks')
+      return alert("You cannot delete chatroom_hooks");
+    if($("option", $stored).length){
+      chrome.storage.sync.get("catch_channels", (config)=>{
+        delete config["catch_channels"][valueSelected]
+        chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
+      });
+      optionSelected.remove();
+      $stored.change();
+    }
+  });
+
+  $('#plugin-select').on('change', function (e){
+    let optionSelected = $("option:selected", this);
+    let valueSelected = this.value;
+    chrome.storage.sync.set({
+      'select_cc': valueSelected
+    }, function(){
+      chrome.storage.sync.get((config)=>{
+        if(config["catch_channels"][valueSelected]){
+          let enable = config["catch_channels"][valueSelected]
+          $('#plugin-switch').attr('class', `fa fa-toggle-${enable ? 'on' : 'off'}`);
+        }
+        else $('#plugin-switch').attr('class', `fa fa-toggle-off`);
+      });
+    });
+  });
+
+  $('#catch_interval').val(config.catch_interval || 0);
+  $('#catch_interval').on('change', function(e){
+    let value = parseFloat(this.value)
+    if(!Number.isNaN(value) && value >= 0){
+      chrome.storage.sync.set({catch_interval: value})
+    }
+  })
+}
+
 $(document).ready(function(){
   $("#goto-dc").click(function(){
     chrome.tabs.create({url: 'https://discord.com/invite/BBCw3UY'});
@@ -211,6 +332,7 @@ $(document).ready(function(){
 
   chrome.storage.sync.get((config)=>{
     proxy_setup(config);
+    catch_setup(config);
     query_setup(config);
     let tab = config['pop-tab'] || 'tab0';
     $(`#${tab} > a`).click();

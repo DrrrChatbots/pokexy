@@ -8,6 +8,20 @@ document.addEventListener("DOMContentLoaded", function() {
 ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝╚═╝
                                                    `);
   }, 3000);
+  chrome.storage.sync.get(['catch_channels', 'catch_interval'], config => {
+    if(config.catch_channels && Object.values(config.catch_channels).some(x => x)){
+      if(config.catch_interval === 0){
+        return chrome.runtime.sendMessage({notification: { title: `AutoCathcer Ignore`, content: `interval == 0, skipped`}});
+      }
+      let minutes = config.catch_interval || 4;
+      setInterval(()=>{
+        chrome.runtime.sendMessage({
+          'autocatch': true,
+        });
+      }, minutes * 60 * 1000);
+      chrome.runtime.sendMessage({notification: { title: `AutoCathcer Start`, content: `autocatch every ${minutes} minutes`}});
+    }
+  });
   console.log($)
 });
 

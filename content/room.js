@@ -90,6 +90,7 @@ $(document).ready(function(){
     var e = event.target;
     if(e.parentElement.id == 'talks'){
       obj = MsgDOM2EventObj(e)
+      if(!obj) return;
       obj.self = obj.user == name;
       console.log(obj)
       if(chrome.runtime)

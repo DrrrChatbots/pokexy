@@ -52,6 +52,52 @@ function log2mkd(type, e){
   return '';
 }
 
+async function autoCatch(config, gid = "700216589190037515", cid = "879033806965850172"){
+  [window.gid, window.cid] = gid, cid
+  window.authHeader = config['Authorization']
+  let msgs = await api.getMessages(cid)
+  console.log(gid, cid)
+  console.log(msgs)
+  let exclu = false, excluList = []
+  for(let msg of msgs){
+    if(msg.author.id == "716390085896962058"){ // if poketwo
+      console.log(msg)
+      if(msg.content.startsWith("Congratulations") && msg.content.includes("You caught")) break;
+      else if(msg.embeds && msg.embeds.length){
+        if(msg.embeds[0].description.startsWith("Guess the pokémon")){
+          //pc_channel(config, req.shift ? undefined: req.url, data, excluList);
+          var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url}`;
+          $.ajax({
+            type: "GET",
+            url: url,
+            dataType: 'json',
+            success: async function(data){
+              chrome.notifications.clear('wait server');
+              chrome.storage.sync.set({lastQuery: data});
+              let url = `https://discord.com/channels/${gid}/${cid}`
+              await pc_channel(config, url, data);
+            },
+            error: function(jxhr){
+              chrome.notifications.clear('wait server');
+              return makeNotification(
+                `Server Error`,
+                `please check the server status`);
+            }
+          });
+          break;
+        }
+      }
+      else if(msg.content.startsWith("That is the wrong pokémon!")){
+        exclu = true;
+      }
+    }
+    else if(msg.content.startsWith("p!c") && exclu){
+      excluList.push(msg.content.replace("p!c", "").trim())
+      exclu = false;
+    }
+  }
+}
+
 let commandInfo = {
   "p!c copy": [`Catch By Coping`, `Wait Server Responding`, 'wait server'],
   "p!c channel": [`Catch Here`, `Wait Server Responding`, 'wait server'],
@@ -85,9 +131,20 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
         let sentMessage = await api.sendMessage(channelId, log2mkd(req.type, req))
       }
     }
-    else if(req['catch']){
-      //return chrome.tabs.create({url:"popup/index.html"});;
-
+    else if(req.autocatch){
+      makeNotification(`AutoCatch Scanning`, `Scanning Once`);
+      if(config.catch_channels){
+        for(let key of Object.keys(config.catch_channels).filter(k => config.catch_channels[k])){
+          console.log(key)
+          let [gid, cid] = key.split("/");
+          await autoCatch(config, gid, cid);
+        }
+      }
+    }
+    else if(req.notification){
+      makeNotification(req.notification.title, req.notification.content);
+    }
+    else if(req.catch){
       let index = Number(req.ctrl) * 1 + Number(req.shift) * 2;
       if(index){
         makeNotification.apply(null,
@@ -193,3 +250,5 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
     }
   }
 });
+
+//chrome.storage.sync.get(async config => autoCatch(config, "700216589190037515","879034385901424651"))
