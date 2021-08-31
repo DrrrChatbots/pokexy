@@ -51,7 +51,7 @@ function log2mkd(type, e){
   return '';
 }
 
-async function autoCatch(config, gid = "700216589190037515", cid = "879033806965850172"){
+async function autoCatch(config, gid, cid){
   [window.gid, window.cid] = gid, cid
   window.authHeader = config['Authorization']
   let msgs = await api.getMessages(cid, {}, 30)
@@ -68,6 +68,7 @@ async function autoCatch(config, gid = "700216589190037515", cid = "879033806965
             dataType: 'json',
             success: async function(data){
               chrome.notifications.clear('wait server');
+              data.url = `https://discord.com/channels/${gid}/${cid}`;
               let removeValFromIndex = [];
               for(let idx in data.pm){
                 if(excluList.includes(data.pm[idx]))
@@ -258,5 +259,3 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
     }
   }
 });
-
-//chrome.storage.sync.get(async config => autoCatch(config, "700216589190037515","879034385901424651"))
