@@ -55,7 +55,7 @@ function log2mkd(type, e){
 async function autoCatch(config, gid = "700216589190037515", cid = "879033806965850172"){
   [window.gid, window.cid] = gid, cid
   window.authHeader = config['Authorization']
-  let msgs = await api.getMessages(cid)
+  let msgs = await api.getMessages(cid, {}, 30)
   console.log(gid, cid)
   console.log(msgs)
   let exclu = false, excluList = []
