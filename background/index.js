@@ -60,7 +60,7 @@ async function autoCatch(config, gid, cid){
     if(msg.author.id == "716390085896962058"){ // if poketwo
       if(msg.content.startsWith("Congratulations") && msg.content.includes("You caught")) break;
       else if(msg.embeds && msg.embeds.length){
-        if(msg.embeds[0].description.startsWith("Guess the pokémon")){
+        if(msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon")){
           var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url}`;
           $.ajax({
             type: "GET",
