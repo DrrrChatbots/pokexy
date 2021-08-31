@@ -30,7 +30,6 @@ function cvt(mode, e){
 function log2mkd(type, e){
   //type, user, text, url
   if(!e) return "";
-  console.log('log data', e);
   if(type === "msg")
     return `**${e.user}**: ${e.text}${e.url? ` [URL](${e.url})`: ''}`
   if(type === "me")
@@ -56,16 +55,12 @@ async function autoCatch(config, gid = "700216589190037515", cid = "879033806965
   [window.gid, window.cid] = gid, cid
   window.authHeader = config['Authorization']
   let msgs = await api.getMessages(cid, {}, 30)
-  console.log(gid, cid)
-  console.log(msgs)
   let exclu = false, excluList = []
   for(let msg of msgs){
     if(msg.author.id == "716390085896962058"){ // if poketwo
-      console.log(msg)
       if(msg.content.startsWith("Congratulations") && msg.content.includes("You caught")) break;
       else if(msg.embeds && msg.embeds.length){
         if(msg.embeds[0].description.startsWith("Guess the pokémon")){
-          //pc_channel(config, req.shift ? undefined: req.url, data, excluList);
           var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url}`;
           $.ajax({
             type: "GET",
@@ -73,6 +68,19 @@ async function autoCatch(config, gid = "700216589190037515", cid = "879033806965
             dataType: 'json',
             success: async function(data){
               chrome.notifications.clear('wait server');
+              let removeValFromIndex = [];
+              for(let idx in data.pm){
+                if(excluList.includes(data.pm[idx]))
+                  removeValFromIndex.push(idx)
+              }
+              for (var i = removeValFromIndex.length -1; i >= 0; i--){
+                console.log(`remove ${excluList}`)
+                if(data.pm) data.pm.splice(removeValFromIndex[i],1);
+                if(data.img) data.dex.splice(removeValFromIndex[i],1);
+                if(data.dex) data.img.splice(removeValFromIndex[i],1);
+              }
+              if(!data.pm.length)
+                return makeNotification(`No candidates skipped`, `no candidates after scanning`);
               chrome.storage.sync.set({lastQuery: data});
               let url = `https://discord.com/channels/${gid}/${cid}`
               await pc_channel(config, url, data);
