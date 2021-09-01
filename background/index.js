@@ -51,17 +51,30 @@ function log2mkd(type, e){
   return '';
 }
 
-async function autoCatch(config, gid, cid){
+async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
   [window.gid, window.cid] = gid, cid
   window.authHeader = config['Authorization']
-  let msgs = await api.getMessages(cid, {}, 30)
+  let msgs = await api.getMessages(cid, {}, 75)
   let exclu = false, excluList = []
-  for(let msg of msgs){
+  for(let msgidx in msgs){
+    let msg = msgs[msgidx];
     if(msg.author.id == "716390085896962058"){ // if poketwo
-      if(msg.content.startsWith("Congratulations") && msg.content.includes("You caught")) break;
-      else if(msg.embeds && msg.embeds.length){
-        if(msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon")){
-          var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url}`;
+      if(msg.content.startsWith("Congratulations") && msg.content.includes("You caught")){
+        if(prev_url){
+          let cont = msg.content
+          let target = 'You caught a level'
+          let beg = cont.indexOf(target)
+          if(beg >= 0){
+            let end = cont.indexOf('!', beg)
+            if(end >= 0) cont = `Caught a level${cont.substring(beg + target.length, end)}`
+          }
+          makeNotification(`Congratulations ${msg.mentions.length ? msg.mentions[0].username : 'unknown'}!`, cont);
+        }
+        break;
+      }
+      else if((prev_url && msgidx == msgs.length - 1) || msg.embeds && msg.embeds.length){
+        if((prev_url && msgidx == msgs.length - 1) || msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon")){
+          var url = `http://localhost:8000/wpm?url=${prev_url || msg.embeds[0].image.proxy_url}`;
           $.ajax({
             type: "GET",
             url: url,
@@ -85,6 +98,10 @@ async function autoCatch(config, gid, cid){
               chrome.storage.sync.set({lastQuery: data});
               let url = `https://discord.com/channels/${gid}/${cid}`
               await pc_channel(config, url, data);
+              await new Promise(resolve => setTimeout(resolve, 3500));
+              if(config.auto_catch_check){ // recheck
+                await autoCatch(config, gid, cid, 25, prev_url || msg.embeds[0].image.proxy_url);
+              }
             },
             error: function(jxhr){
               chrome.notifications.clear('wait server');
@@ -104,6 +121,8 @@ async function autoCatch(config, gid, cid){
       excluList.push(msg.content.replace("p!c", "").trim())
       exclu = false;
     }
+    else if(msg.content.includes("break"))
+      return makeNotification(`Meet Break`, `somebody break the autocatch`);
   }
 }
 
@@ -141,6 +160,9 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
       }
     }
     else if(req.autocatch){
+      chrome.notifications.getAll((notes)=>{
+        for(n in notes) chrome.notifications.clear(n);
+      })
       makeNotification(`AutoCatch Scanning`, `Scanning Once`);
       if(config.catch_channels){
         for(let key of Object.keys(config.catch_channels).filter(k => config.catch_channels[k])){

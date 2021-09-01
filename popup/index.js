@@ -249,6 +249,27 @@ function catch_setup(config){
     chrome.runtime.sendMessage({ 'autocatch': true });
   })
 
+  function setCheck(enable){
+    if(enable){
+      $('#auto_catch_check_icon')
+        .removeClass('glyphicon-unchecked')
+        .addClass('glyphicon-check')
+    }
+    else{
+      $('#auto_catch_check_icon')
+        .removeClass('glyphicon-check')
+        .addClass('glyphicon-unchecked')
+    }
+  }
+
+  setCheck(config.auto_catch_check);
+  $('#auto_catch_check').on('click', function(){
+    let v = !$('#auto_catch_check_icon').hasClass(`glyphicon-check`);
+    chrome.storage.sync.set({ "auto_catch_check": v })
+    setCheck(v);
+  })
+
+
   //$('#write_plugin').on('click', function(){
 
   //});
