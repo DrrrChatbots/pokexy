@@ -72,9 +72,9 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
         }
         break;
       }
-      else if((prev_url && msgidx == msgs.length - 1) || msg.embeds && msg.embeds.length){
-        if((prev_url && msgidx == msgs.length - 1) || msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon")){
-          var url = `http://localhost:8000/wpm?url=${prev_url || msg.embeds[0].image.proxy_url}`;
+      else if(msg.embeds && msg.embeds.length || (prev_url && msgidx == msgs.length - 1)){
+        if(msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon") || (prev_url && msgidx == msgs.length - 1)){
+          var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url || prev_url}`;
           $.ajax({
             type: "GET",
             url: url,
