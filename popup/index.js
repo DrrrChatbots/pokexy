@@ -249,6 +249,12 @@ function catch_setup(config){
     chrome.runtime.sendMessage({ 'autocatch': true });
   })
 
+  $('#refresh_discord').on('click', function(){
+    sendTab({'refresh_discord_catch': true},
+      undefined, undefined, undefined,
+      'https://discord.com/channels/*');
+  })
+
   function setCheck(enable){
     if(enable){
       $('#auto_catch_check_icon')

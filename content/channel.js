@@ -1,3 +1,26 @@
+var catch_handler = null;
+
+function catch_setup_change(){
+  if(catch_handler) {
+    clearInterval(catch_handler);
+    chrome.runtime.sendMessage({notification: { title: `AutoCathcer Stop`, content: `Stop AutoCathcer Daemon`}});
+  }
+  chrome.storage.sync.get(['catch_channels', 'catch_interval'], config => {
+    if(config.catch_channels && Object.values(config.catch_channels).some(x => x)){
+      if(config.catch_interval === 0){
+        return chrome.runtime.sendMessage({notification: { title: `AutoCathcer Ignore`, content: `interval == 0, skipped`}});
+      }
+      let minutes = config.catch_interval || 4;
+      catch_handler = setInterval(()=>{
+        chrome.runtime.sendMessage({
+          'autocatch': true,
+        });
+      }, minutes * 60 * 1000);
+      chrome.runtime.sendMessage({notification: { title: `AutoCathcer Start`, content: `autocatch every ${minutes} minutes`}});
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   setTimeout(()=>{
     console.log(`██████╗  ██████╗ ██╗  ██╗██╗  ██╗██╗   ██╗██╗██╗██╗
@@ -8,21 +31,7 @@ document.addEventListener("DOMContentLoaded", function() {
 ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝╚═╝
                                                    `);
   }, 3000);
-  chrome.storage.sync.get(['catch_channels', 'catch_interval'], config => {
-    if(config.catch_channels && Object.values(config.catch_channels).some(x => x)){
-      if(config.catch_interval === 0){
-        return chrome.runtime.sendMessage({notification: { title: `AutoCathcer Ignore`, content: `interval == 0, skipped`}});
-      }
-      let minutes = config.catch_interval || 4;
-      setInterval(()=>{
-        chrome.runtime.sendMessage({
-          'autocatch': true,
-        });
-      }, minutes * 60 * 1000);
-      chrome.runtime.sendMessage({notification: { title: `AutoCathcer Start`, content: `autocatch every ${minutes} minutes`}});
-    }
-  });
-  console.log($)
+  catch_setup_change();
 });
 
 $(document).on('click', 'img', function(event){
@@ -47,6 +56,9 @@ chrome.runtime.onMessage.addListener(
         callback(token);
       }
       else callback(false);
+    }
+    else if(req.refresh_discord_catch){
+      catch_setup_change();
     }
     console.log(req);
   });
