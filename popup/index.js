@@ -153,7 +153,7 @@ function grid_of(list, n){
 var query_src = (args) => `${args.url}`
 var query_btn = (args) =>
   `<figure><img src="${query_src(args)}" class="query-btn" style="${args.imgstyle}"
-                title="${args.name}" query-url="${args.query_url}" dexno="${args.dex}"></figure>`
+                title="${args.pm}" query-url="${args.query_url}" dexno="${args.dex}" dexname="${args.name}"></figure>`
 
 btn_funcbind = {
   [query_btn]: bind_query,
@@ -174,8 +174,9 @@ function bind_query(args){
     }
     else {
       let dex = $(this).attr('dexno')
+      let dexName = $(this).attr('dexname')
       //alert(dex);
-      chrome.tabs.create({url: `https://www.pokemon.com/us/pokedex/${this.title}`});
+      chrome.tabs.create({url: `https://www.pokemon.com/us/pokedex/${dexName}`});
     }
   })
 }
@@ -191,7 +192,8 @@ function query_setup(config){
     '#query_list_container',
     grid_of(config.lastQuery.img.map((fn, idx)=>({
       url: `https://raw.githubusercontent.com/poketwo/data/master/images/${fn}.png`,
-      name: config.lastQuery.pm[idx],
+      pm: config.lastQuery.pm[idx],
+      name: config.lastQuery.name[idx] || config.lastQuery.pm[idx],
       dex: config.lastQuery.dex[idx],
       colstyle: `flex: 50%; max-width: 50%; padding: 0 4px;`,
       imgstyle: `margin-top: 8px; vertical-align: middle; width: 100%; `,

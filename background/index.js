@@ -75,6 +75,7 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
       else if(msg.embeds && msg.embeds.length || (prev_url && msgidx == msgs.length - 1)){
         if(msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon") || (prev_url && msgidx == msgs.length - 1)){
           var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url || prev_url}`;
+          //await pc_typing(config, `https://discord.com/channels/${gid}/${cid}`);
           $.ajax({
             type: "GET",
             url: url,
@@ -182,6 +183,7 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
           commandInfo[["invalid", "p!c channel", "p!c copy", "p!c query"][index]])
 
         var url = `http://localhost:8000/wpm?url=${encodeURIComponent(req.catch)}`;
+        //if(req.ctrl && !req.shift) await pc_typing(config, req.pageUrl);
         $.ajax({
           type: "GET",
           url: url,
@@ -193,10 +195,8 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
             if(req.ctrl){
               if(req.shift) pc_copy(data);
               else{
-                chrome.storage.sync.get(async (config)=>{
-                  let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
-                  if(req.url.match(regexp)) return await pc_channel(config, req.shift ? undefined: req.url, data);
-                });
+                let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
+                if(req.url.match(regexp)) return (pc_channel(config, req.url, data).then(() => {}));
               }
             }
             else if(req.shift){
@@ -251,32 +251,33 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
     makeNotification.apply(null, commandInfo[info.menuItemId])
     let link = (info.linkUrl ? info.linkUrl : "");
     if(link.length){
-      var url = `http://localhost:8000/wpm?url=${encodeURIComponent(link)}`;
-      $.ajax({
-        type: "GET",
-        url: url,
-        dataType: 'json',
-        success: function(data){
-          chrome.notifications.clear('wait server');
-          chrome.storage.sync.get(async (config)=>{
+      chrome.storage.sync.get(async (config)=>{
+        var url = `http://localhost:8000/wpm?url=${encodeURIComponent(link)}`;
+        //await pc_typing(config, info.pageUrl);
+        $.ajax({
+          type: "GET",
+          url: url,
+          dataType: 'json',
+          success: function(data){
+            chrome.notifications.clear('wait server');
             data.url = info.pageUrl;
             chrome.storage.sync.set({lastQuery: data});
             if(info.menuItemId == "p!c copy")
               return pc_copy(data);
             else if(info.menuItemId == "p!c channel")
-              return await pc_channel(config, info.pageUrl, data);
+              return (pc_channel(config, info.pageUrl, data)).then(() => {});
             else if(info.menuItemId == "p!c query")
               return makeNotification(`Query Done!`, `Guess Pokemon "${data.pm[0]}"!`);
             //else if(info.menuItemId == "p!c fixchannel")
             //  return await pc_channel(config, undefined, data);
-          });
-        },
-        error: function(jxhr){
-          chrome.notifications.clear('wait server');
-          return makeNotification(
-            `Server Error`,
-            `please check the server status`);
-        }
+          },
+          error: function(jxhr){
+            chrome.notifications.clear('wait server');
+            return makeNotification(
+              `Server Error`,
+              `please check the server status`);
+          }
+        });
       });
     }
   }
