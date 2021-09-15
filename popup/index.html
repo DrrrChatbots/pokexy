@@ -181,11 +181,9 @@
             <br>
             <div class="input-group">
               <div class="input-group-btn">
-
                 <button id="plugin-switch-btn" class="btn btn-default" title="Enable/Disable">
                   <i id="plugin-switch" class="fa fa-toggle-off" aria-hidden="true"></i>
                 </button>
-
               </div>
 
               <span class="input-group-addon" style="width:0px; padding-left:0px; padding-right:0px; border:none;"></span>
@@ -218,8 +216,16 @@
               <input id="catchCmd" type="text" class="form-control" placeholder="catch command" readonly>
 
               <div class="input-group-btn">
+                <button id="auto_catch_check" class="btn btn-default"
+                        type="submit" title="AutoRecheck (if caught after 3.5s)">
+                  <i id="auto_catch_check_icon" class="glyphicon glyphicon-unchecked"></i>
+                </button>
+                <button id="prefix_mode" class="btn btn-default"
+                      type="submit" title="Use custom/system catch command">
+                  <i id="prefix_icon" class="glyphicon glyphicon-tag"></i>
+                </button>
                 <button id="catchcmd-set" class="btn btn-default" type="button" title="set catch command">
-                  <i class="glyphicon glyphicon-apple"></i>
+                  <i class="glyphicon glyphicon-edit"></i>
                 </button>
               </div>
 
@@ -247,10 +253,6 @@
               <span class="input-group-addon" style="width:0px; padding-left:0px; padding-right:0px; border:none;"></span>
 
               <div class="input-group-btn">
-                <button id="auto_catch_check" class="btn btn-default"
-                        type="submit" title="AutoRecheck (if caught after 3.5s)">
-                  <i id="auto_catch_check_icon" class="glyphicon glyphicon-unchecked"></i>
-                </button>
                 <button id="refresh_discord" class="btn btn-default"
                       type="submit" title="Refresh Catch Setting on Discord">
                   <i id="" class="glyphicon glyphicon-refresh"></i>

@@ -6,7 +6,9 @@ function catch_setup_change(){
     chrome.runtime.sendMessage({notification: { title: `AutoCathcer Stop`, content: `Stop AutoCathcer Daemon`}});
   }
   chrome.storage.sync.get(['catch_channels', 'catch_interval'], config => {
-    if(config.catch_channels && Object.values(config.catch_channels).some(x => x)){
+    if(config.catch_channels &&
+      Object.values(config.catch_channels)
+      .some(channel => channel.enable)){
       if(config.catch_interval === 0){
         return chrome.runtime.sendMessage({notification: { title: `AutoCathcer Ignore`, content: `interval == 0, skipped`}});
       }

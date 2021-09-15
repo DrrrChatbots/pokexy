@@ -202,6 +202,34 @@ function query_setup(config){
   );
 }
 
+function setPrefix(enableSystem){
+  if(enableSystem){
+    $('#prefix_icon')
+      .removeClass('glyphicon-tag')
+      .addClass('glyphicon-globe')
+    $('#prefix_mode').attr('title', 'Use server catch command now')
+  }
+  else{
+    $('#prefix_icon')
+      .removeClass('glyphicon-globe')
+      .addClass('glyphicon-tag')
+    $('#prefix_mode').attr('title', 'Use custom catch command now')
+  }
+}
+
+function setCheck(enable){
+  if(enable){
+    $('#auto_catch_check_icon')
+      .removeClass('glyphicon-unchecked')
+      .addClass('glyphicon-check')
+  }
+  else{
+    $('#auto_catch_check_icon')
+      .removeClass('glyphicon-check')
+      .addClass('glyphicon-unchecked')
+  }
+}
+
 function init_plugin(config){
 
   $('#catchCmd').val(typeof config['catchCmd'] === 'string' ? config['catchCmd'] : 'p!c')
@@ -217,15 +245,22 @@ function init_plugin(config){
         `<option style="text-align:center; text-align-last:center;"
           title="${name}"
           value="${name}">${name}</option>`);
+      config["catch_channels"][cc] = {}
+      config["catch_channels"][cc].enable = false;
+      config["catch_channels"][cc].prefix = false;
+      config["catch_channels"][cc].check = false;
     })
 
     let select_cc = config['select_cc'];
 
     if(select_cc){
-      let enable = config['catch_channels'][select_cc];
       $('#plugin-select').val(select_cc);
-      let plugin_switch = enable;
+      let enable = config['catch_channels'][select_cc].enable;
       $('#plugin-switch').attr('class', `fa fa-toggle-${enable ? 'on' : 'off'}`);
+      let prefix = config['catch_channels'][select_cc].prefix;
+      setPrefix(prefix);
+      let check = config['catch_channels'][select_cc].check;
+      setCheck(check);
     }
   }
 }
@@ -244,12 +279,41 @@ function catch_setup(config){
     let v = !$('#plugin-switch').hasClass(`fa-toggle-on`);
     if(!valueSelected) return;
     chrome.storage.sync.get("catch_channels", (config)=>{
-      config["catch_channels"][valueSelected] = v;
+      config["catch_channels"][valueSelected].enable = v;
       chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
     });
     $('#plugin-switch').attr('class', `fa fa-toggle-${v ? 'on' : 'off'}`);
   });
 
+  $('#prefix_mode').on('click', function(){
+    let sel = $('#plugin-select')[0];
+    let optionSelected = $("option:selected", sel);
+    let valueSelected = sel.value;
+    if(!valueSelected.trim().length)
+      return alert("no selected catch channel")
+    let v = !$('#prefix_icon').hasClass(`glyphicon-globe`);
+    if(!valueSelected) return;
+    chrome.storage.sync.get("catch_channels", (config)=>{
+      config["catch_channels"][valueSelected].prefix = v;
+      chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
+    });
+    setPrefix(v)
+  });
+
+  $('#auto_catch_check').on('click', function(){
+    let sel = $('#plugin-select')[0];
+    let optionSelected = $("option:selected", sel);
+    let valueSelected = sel.value;
+    if(!valueSelected.trim().length)
+      return alert("no selected catch channel")
+    let v = !$('#auto_catch_check_icon').hasClass(`glyphicon-check`);
+    if(!valueSelected) return;
+    chrome.storage.sync.get("catch_channels", (config)=>{
+      config["catch_channels"][valueSelected].check = v;
+      chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
+    });
+    setCheck(v);
+  })
 
   $('#auto_catch').on('click', function(){
     chrome.runtime.sendMessage({ 'autocatch': true });
@@ -275,35 +339,6 @@ function catch_setup(config){
     $('#catchCmd').val(cmd);
   })
 
-  function setCheck(enable){
-    if(enable){
-      $('#auto_catch_check_icon')
-        .removeClass('glyphicon-unchecked')
-        .addClass('glyphicon-check')
-    }
-    else{
-      $('#auto_catch_check_icon')
-        .removeClass('glyphicon-check')
-        .addClass('glyphicon-unchecked')
-    }
-  }
-
-  setCheck(config.auto_catch_check);
-  $('#auto_catch_check').on('click', function(){
-    let v = !$('#auto_catch_check_icon').hasClass(`glyphicon-check`);
-    chrome.storage.sync.set({ "auto_catch_check": v })
-    setCheck(v);
-  })
-
-
-  //$('#write_plugin').on('click', function(){
-
-  //});
-
-  //$('#save-plugin').on('click', function(){
-
-  //});
-
   $('#add_plugin').on('click', function(){
 
     let url = prompt('input the channel URL\n(https://discord.com/channels/.../...)');
@@ -314,7 +349,10 @@ function catch_setup(config){
       let name = `${m[1]}/${m[2]}`;
       chrome.storage.sync.get("catch_channels", (config)=>{
         config["catch_channels"] = config["catch_channels"] || {}
-        config["catch_channels"][name] = false;
+        config["catch_channels"][name] = {}
+        config["catch_channels"][name].enable = false;
+        config["catch_channels"][name].prefix = false;
+        config["catch_channels"][name].check = false;
         chrome.storage.sync.set({ "catch_channels": config["catch_channels"] })
       });
       let $stored = $('#plugin-select');
@@ -331,9 +369,7 @@ function catch_setup(config){
     let $stored = $('#plugin-select');
     let optionSelected = $("option:selected", $stored);
     let valueSelected = $stored.val();
-    if(!valueSelected) return alert("no plugin selected");
-    if(valueSelected === 'chatroom_hooks')
-      return alert("You cannot delete chatroom_hooks");
+    if(!valueSelected) return alert("no channel selected");
     if($("option", $stored).length){
       chrome.storage.sync.get("catch_channels", (config)=>{
         delete config["catch_channels"][valueSelected]
@@ -352,8 +388,12 @@ function catch_setup(config){
     }, function(){
       chrome.storage.sync.get((config)=>{
         if(config["catch_channels"][valueSelected]){
-          let enable = config["catch_channels"][valueSelected]
+          let enable = config["catch_channels"][valueSelected].enable
           $('#plugin-switch').attr('class', `fa fa-toggle-${enable ? 'on' : 'off'}`);
+          let prefix = config['catch_channels'][valueSelected].prefix;
+          setPrefix(prefix);
+          let check = config['catch_channels'][valueSelected].check;
+          setCheck(check);
         }
         else $('#plugin-switch').attr('class', `fa fa-toggle-off`);
       });

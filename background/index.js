@@ -57,7 +57,6 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
   let msgs = await api.getMessages(cid, {}, 75)
   let contList = []
   let exclu = false
-  let excluList = []
   for(let msgidx in msgs){
     let msg = msgs[msgidx];
     if(msg.author.id == "716390085896962058"){ // if poketwo
@@ -75,9 +74,14 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
         break;
       }
       else if(msg.embeds && msg.embeds.length || (prev_url && msgidx == msgs.length - 1)){
-        if(msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon") || (prev_url && msgidx == msgs.length - 1)){
+        if(msg.embeds[0].description
+          && msg.embeds[0].description.startsWith("Guess the pokémon")
+          || (prev_url && msgidx == msgs.length - 1)){
 
-          // TODO parse the command prefix in description
+          let prefix = msg.embeds[0].description.match(/`(.*)catch <pokémon>`/)[1]
+
+          let excluList = contList.filter(cont => cont.startsWith(`${prefix}c`))
+                              .map(cont => cont.replace(`${prefix}catch`, "").replace(`${prefix}c`, "").trim().toLowerCase())
 
           var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url || prev_url}`;
           //await pc_typing(config, `https://discord.com/channels/${gid}/${cid}`);
@@ -104,10 +108,11 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
                 return makeNotification(`No candidates skipped`, `no candidates after scanning`);
               chrome.storage.sync.set({lastQuery: data});
               let url = `https://discord.com/channels/${gid}/${cid}`
-              let toss = await pc_channel(config, url, data, contList);
+              let toss = await pc_channel(config, url, data, contList, prefix);
               if(!toss) return;
               await new Promise(resolve => setTimeout(resolve, 3500));
-              if(config.auto_catch_check){ // recheck
+              if(config['catch_channels'][`${gid}/${cid}`].check){ // recheck
+                console.log("check catch status once")
                 await autoCatch(config, gid, cid, 25, prev_url || msg.embeds[0].image.proxy_url);
               }
             },
@@ -121,18 +126,18 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
           break;
         }
       }
-      else if(msg.content.startsWith("That is the wrong pokémon!")){
-        exclu = true;
-      }
+      //else if(msg.content.startsWith("That is the wrong pokémon!")){
+      //  exclu = true;
+      //}
     }
-    else if(msg.content.startsWith("p!c") /* && exclu */){
-      excluList.push(msg.content.replace("p!c", "").trim().toLowerCase())
-      exclu = false;
-    }
+    //else if(msg.content.startsWith(`${prefix}c`) /* && exclu */){
+    //  excluList.push(msg.content.replace(`${prefix}catch`, "").replace(`${prefix}c`, "").trim().toLowerCase())
+    //  exclu = false;
+    //}
     else if(msg.content.includes("break"))
       return makeNotification(`Meet Break`, `somebody break the autocatch`);
 
-    if(msg.content) contList.push(msg.content)
+    if(msg.content) contList.push(msg.content.trim())
   }
 }
 
@@ -175,7 +180,8 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
       })
       makeNotification(`AutoCatch Scanning`, `Scanning Once`);
       if(config.catch_channels){
-        for(let key of Object.keys(config.catch_channels).filter(k => config.catch_channels[k])){
+        for(let key of Object.keys(config.catch_channels)
+          .filter(k => config.catch_channels[k].enable)){
           console.log(key)
           let [gid, cid] = key.split("/");
           await autoCatch(config, gid, cid);
