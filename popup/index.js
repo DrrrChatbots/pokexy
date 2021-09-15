@@ -162,15 +162,15 @@ btn_funcbind = {
 function bind_query(args){
   $(`img[src="${query_src(args)}"]`).on('click', function(event){
     if(event.shiftKey || event.ctrlKey){
-      if(event.shiftKey){
-        pc_copy({pm: [this.title]})
-      }
-      else if(event.ctrlKey){
-        chrome.storage.sync.get(async (config)=>{
-          let channel_url = $(this).attr('query-url')
-          await pc_channel(config, channel_url, {pm: [this.title]});
-        });
-      }
+      chrome.storage.sync.get(async (config)=>{
+        if(event.shiftKey){
+          pc_copy(config, {pm: [this.title]})
+        }
+        else if(event.ctrlKey){
+            let channel_url = $(this).attr('query-url')
+            await pc_channel(config, channel_url, {pm: [this.title]});
+        }
+      });
     }
     else {
       let dex = $(this).attr('dexno')
@@ -203,6 +203,10 @@ function query_setup(config){
 }
 
 function init_plugin(config){
+
+  $('#catchCmd').val(typeof config['catchCmd'] === 'string' ? config['catchCmd'] : 'p!c')
+  $('#copyCmd').val(typeof config['copyCmd'] === 'string' ? config['copyCmd'] : 'p!c')
+
   if(config['catch_channels']){
     $('#plugin-select').empty();
 
@@ -255,6 +259,20 @@ function catch_setup(config){
     sendTab({'refresh_discord_catch': true},
       undefined, undefined, undefined,
       'https://discord.com/channels/*');
+  })
+
+  $('#copycmd-set').on('click', function(){
+    let cmd = prompt('input the command:');
+    if(cmd === null) return;
+    chrome.storage.sync.set({'copyCmd': cmd});
+    $('#copyCmd').val(cmd);
+  })
+
+  $('#catchcmd-set').on('click', function(){
+    let cmd = prompt('input the command:');
+    if(cmd === null) return;
+    chrome.storage.sync.set({'catchCmd': cmd});
+    $('#catchCmd').val(cmd);
   })
 
   function setCheck(enable){

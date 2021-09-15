@@ -55,7 +55,9 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
   [window.gid, window.cid] = gid, cid
   window.authHeader = config['Authorization']
   let msgs = await api.getMessages(cid, {}, 75)
-  let exclu = false, excluList = []
+  let contList = []
+  let exclu = false
+  let excluList = []
   for(let msgidx in msgs){
     let msg = msgs[msgidx];
     if(msg.author.id == "716390085896962058"){ // if poketwo
@@ -74,6 +76,9 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
       }
       else if(msg.embeds && msg.embeds.length || (prev_url && msgidx == msgs.length - 1)){
         if(msg.embeds[0].description && msg.embeds[0].description.startsWith("Guess the pokémon") || (prev_url && msgidx == msgs.length - 1)){
+
+          // TODO parse the command prefix in description
+
           var url = `http://localhost:8000/wpm?url=${msg.embeds[0].image.proxy_url || prev_url}`;
           //await pc_typing(config, `https://discord.com/channels/${gid}/${cid}`);
           $.ajax({
@@ -83,6 +88,7 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
             success: async function(data){
               chrome.notifications.clear('wait server');
               data.url = `https://discord.com/channels/${gid}/${cid}`;
+              data.pm = data.pm.map(name => name.toLowerCase());
               let removeValFromIndex = [];
               for(let idx in data.pm){
                 if(excluList.includes(data.pm[idx]))
@@ -98,7 +104,8 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
                 return makeNotification(`No candidates skipped`, `no candidates after scanning`);
               chrome.storage.sync.set({lastQuery: data});
               let url = `https://discord.com/channels/${gid}/${cid}`
-              await pc_channel(config, url, data);
+              let toss = await pc_channel(config, url, data, contList);
+              if(!toss) return;
               await new Promise(resolve => setTimeout(resolve, 3500));
               if(config.auto_catch_check){ // recheck
                 await autoCatch(config, gid, cid, 25, prev_url || msg.embeds[0].image.proxy_url);
@@ -118,12 +125,14 @@ async function autoCatch(config, gid, cid, limit = 75, prev_url = undefined){
         exclu = true;
       }
     }
-    else if(msg.content.startsWith("p!c") && exclu){
-      excluList.push(msg.content.replace("p!c", "").trim())
+    else if(msg.content.startsWith("p!c") /* && exclu */){
+      excluList.push(msg.content.replace("p!c", "").trim().toLowerCase())
       exclu = false;
     }
     else if(msg.content.includes("break"))
       return makeNotification(`Meet Break`, `somebody break the autocatch`);
+
+    if(msg.content) contList.push(msg.content)
   }
 }
 
@@ -191,9 +200,10 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
           success: function(data){
             chrome.notifications.clear('wait server');
             data.url = req.url;
+            data.pm = data.pm.map(name => name.toLowerCase());
             chrome.storage.sync.set({lastQuery: data});
             if(req.ctrl){
-              if(req.shift) pc_copy(data);
+              if(req.shift) pc_copy(config, data);
               else{
                 let regexp = new RegExp('https://discord.com/channels/(\\d+)/(\\d+)');
                 if(req.url.match(regexp)) return (pc_channel(config, req.url, data).then(() => {}));
@@ -263,7 +273,7 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
             data.url = info.pageUrl;
             chrome.storage.sync.set({lastQuery: data});
             if(info.menuItemId == "p!c copy")
-              return pc_copy(data);
+              return pc_copy(config, data);
             else if(info.menuItemId == "p!c channel")
               return (pc_channel(config, info.pageUrl, data)).then(() => {});
             else if(info.menuItemId == "p!c query")
