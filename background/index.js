@@ -217,8 +217,8 @@ chrome.runtime.onMessage.addListener((req, sender, callback) => {
             }
             else if(req.shift){
               makeNotification(`Query Done!`, `Guess Pokemon "${data.pm[0]}"!`, undefined,
-                data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
-                data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
+                data.img && data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
+                data.img && data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
               );
             }
           },
@@ -287,8 +287,8 @@ chrome.contextMenus.onClicked.addListener(function(info,tab) {
               return (pc_channel(config, info.pageUrl, data)).then(() => {});
             else if(info.menuItemId == "p!c query")
               return makeNotification(`Query Done!`, `Guess Pokemon "${data.pm[0]}"!`, undefined,
-                data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
-                data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
+                data.img && data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
+                data.img && data.img[0] && `https://raw.githubusercontent.com/poketwo/data/master/images/${data.img[0]}.png`,
               );
             //else if(info.menuItemId == "p!c fixchannel")
             //  return await pc_channel(config, undefined, data);
