@@ -41,7 +41,8 @@
         "*://drrr.com/*",
         "*://discord.com/*",
         "*://discordapp.com/*",
-        "*://localhost/*"
+        "*://localhost/*",
+        "*://raw.githubusercontent.com/*"
     ],
     "optional_permissions": [ "http://*/*", "https://*/*" ]
 }
